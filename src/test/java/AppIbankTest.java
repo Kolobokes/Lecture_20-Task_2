@@ -1,3 +1,4 @@
+import com.codeborne.selenide.SelenideElement;
 import com.sun.tools.javac.util.Assert;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
@@ -8,7 +9,15 @@ import io.restassured.specification.RequestSpecification;
 import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugins;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.openqa.selenium.Keys;
 
+import java.time.Duration;
+
+import static com.codeborne.selenide.Condition.exactText;
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selectors.withText;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.open;
 import static io.restassured.RestAssured.given;
 
 public class AppIbankTest {
@@ -25,7 +34,7 @@ public class AppIbankTest {
         // сам запрос
         given() // "дано"
                 .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(new User("vasya", "password", "active")) // передаём в теле объект, который будет преобразован в JSON
+                .body(new User("vasya", "123", "active")) // передаём в теле объект, который будет преобразован в JSON
                 .when() // "когда"
                 .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
                 .then() // "тогда ожидаем"
@@ -33,19 +42,17 @@ public class AppIbankTest {
     }
 
     @Test
-    public void SomethingTest(){
-        JSONObject requestBody = new JSONObject();
-        requestBody.put("login", "vasya");
-        requestBody.put("password", "password");
-        requestBody.put("status", "active");
+    public void LoginActiveUserTest(){
 
-        RequestSpecification request = RestAssured.given();
-        request.header("Content-Type", "application/json");
-        request.body(requestBody.toJSONString());
-        Response response = request.post("http://localhost");
-
-        int statusCode = response.getStatusCode();
-        Assert.assertEquals(statusCode, 200);
+        open("http://localhost:9999");
+        SelenideElement form = $("#root");
+        form.$("[data-test-id='login'] .input__inner").setValue("vasya");
+        form.$("[data-test-id='password'] .input__inner").setValue("123");
+        form.$(withText("Продолжить")).click();
+        $("[data-test-id='success-notification']").shouldBe(visible, Duration.ofSeconds(15));
+ //       $("[data-test-id='success-notification'] .notification__content")
+ //               .shouldHave(exactText("Встреча успешно запланирована на " + correctDate));
     }
+
 }
 
