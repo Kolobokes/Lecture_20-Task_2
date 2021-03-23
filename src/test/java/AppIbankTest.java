@@ -1,5 +1,6 @@
 import com.codeborne.selenide.SelenideElement;
 import com.sun.tools.javac.util.Assert;
+import io.github.bonigarcia.wdm.managers.SeleniumServerStandaloneManager;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.filter.log.LogDetail;
@@ -29,12 +30,38 @@ public class AppIbankTest {
             .log(LogDetail.ALL)
             .build();
 
+    static User testUsers (boolean active){
+
+        if (active) {
+            User testUser = new User("IvanovII", "1230", "active");
+
+            return testUser;
+        }
+        else {
+            User testUser = new User("PetrovTT", "1231", "blocked");
+
+            return testUser;
+        }
+    }
+
     @BeforeAll
     static void setUpAll() {
+
+        User testUserActive = testUsers(true);
+        User testUserBlocked = testUsers(false);
         // сам запрос
         given() // "дано"
                 .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(new User("vasya", "123", "active")) // передаём в теле объект, который будет преобразован в JSON
+                .body(testUserActive) // передаём в теле объект, который будет преобразован в JSON
+                .when() // "когда"
+                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
+                .then() // "тогда ожидаем"
+                .statusCode(200); // код 200 OK
+
+        // сам запрос
+        given() // "дано"
+                .spec(requestSpec) // указываем, какую спецификацию используем
+                .body(testUserBlocked) // передаём в теле объект, который будет преобразован в JSON
                 .when() // "когда"
                 .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
                 .then() // "тогда ожидаем"
@@ -44,14 +71,28 @@ public class AppIbankTest {
     @Test
     public void LoginActiveUserTest(){
 
+        User testUserActive = testUsers(true);
+        User testUserBlocked = testUsers(false);
+
         open("http://localhost:9999");
         SelenideElement form = $("#root");
-        form.$("[data-test-id='login'] .input__inner").setValue("vasya");
-        form.$("[data-test-id='password'] .input__inner").setValue("123");
+        form.$("[name='login']").setValue(testUserActive.login);
+        form.$("[name='password']").setValue(testUserActive.password);
         form.$(withText("Продолжить")).click();
-        $("[data-test-id='success-notification']").shouldBe(visible, Duration.ofSeconds(15));
- //       $("[data-test-id='success-notification'] .notification__content")
- //               .shouldHave(exactText("Встреча успешно запланирована на " + correctDate));
+        $(withText("Личный кабинет")).shouldBe(visible, Duration.ofSeconds(15));
+    }
+
+    @Test
+    public void LoginBlockedUserTest(){
+
+        User testUserBlocked = testUsers(false);
+
+        open("http://localhost:9999");
+        SelenideElement form = $("#root");
+        form.$("[name='login']").setValue(testUserBlocked.login);
+        form.$("[name='password']").setValue(testUserBlocked.password);
+        form.$(withText("Продолжить")).click();
+        $("[data-test-id='error-notification']").shouldBe(visible);
     }
 
 }
