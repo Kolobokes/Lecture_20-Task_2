@@ -13,6 +13,6 @@ install:
   - java -jar ./artifacts/app-ibank.jar &
 
 build_script:
-   - ./gradlew test -Dselenide.headless=true -info
+   - ./gradlew test -Dselenide.headless=true -info -P:profile=test
 
 
